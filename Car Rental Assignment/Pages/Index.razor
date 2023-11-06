@@ -1,0 +1,104 @@
+﻿@page "/"
+@using Car_Rental.Business.Classes;
+@using Car_Rental.Common.Enumerals;
+@using Car_Rental.Common.Interfaces;
+@inject BookingProcessor BP
+
+<PageTitle>Index</PageTitle>
+
+<h2>Car Rental Assignment - G</h2>
+
+<h5>Vehicles</h5>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>RegNr</th>
+            <th>Make</th>
+            <th>Odometer</th>
+            <th>Cost/Km</th>
+            <th>Vehicle Type</th>
+            <th>Cost/Day ($)</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (IVehicle element in BP.GetVehicles())
+        {
+            <tr>
+                <th>@element.RegNr</th>
+                <td>@element.Make</td>
+                <td>@element.Odometer</td>
+                <td>@element.CostKm</td>
+                <td>@element.Type</td>
+                <td>@element.CostDay</td>
+                <td><span class="badge rounded-pill text-bg-@(element.Status == VehicleStatus.Available ? "success" : "danger")">
+                    @(element.Status == VehicleStatus.Available ? "Available" : "Booked")</span></td>
+                
+            </tr>
+        }
+    </tbody>
+</table>
+
+<h5>Bookings</h5>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>RegNr</th>
+            <th>Customer</th>
+            <th>Km Rented</th>
+            <th>Km Returned</th>
+            <th>Rented</th>
+            <th>Returned</th>
+            <th>Cost ($)</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (IBooking element in BP.GetBookings())
+        {
+            <tr>
+                <th>@element.Vehicle.RegNr</th>
+                <td>@($"{element.Customer.LastName} {element.Customer.FirstName} {element.Customer.SocialSecurityNumber}")</td>
+                <td>@element.KmRented</td>
+                <td>@if(element.Status.Equals(BookingStatus.Closed))
+                    @(element.KmRented + element.KmUsed)
+                </td>
+                <td>@element.Rented.ToShortDateString()</td>
+                <td>@if (element.Status.Equals(BookingStatus.Closed))
+                    @element.Returned.ToShortDateString()
+                </td>
+                <td>@if (element.Status.Equals(BookingStatus.Closed))
+                        @element.Cost
+                </td>
+                <td><span class="badge rounded-pill text-bg-@(element.Status == BookingStatus.Open ? "info" : "dark")">
+                    @(element.Status == BookingStatus.Open ? "Open" : "Closed")</span></td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<h5>Customers</h5>
+
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>SSN</th>
+            <th>Last Name</th>
+            <th>First Name</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (IPerson element in BP.GetPersons())
+        {
+            <tr>
+                <th>@element.SocialSecurityNumber</th>
+                <td>@element.LastName</td>
+                <td>@element.FirstName</td>
+                
+            </tr>
+        }
+    </tbody>
+</table>
