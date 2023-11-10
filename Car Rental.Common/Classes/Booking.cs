@@ -1,4 +1,5 @@
 ﻿using Car_Rental.Common.Enumerals;
+using Car_Rental.Common.Extensions;
 using Car_Rental.Common.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -11,24 +12,26 @@ namespace Car_Rental.Common.Classes;
 
 public class Booking : IBooking
 {
+    public int Id { get; init; }
     public IPerson Customer { get; init; }
 
-    public IVehicle Vehicle { get; init; }
+    public Vehicle Vehicle { get; init; }
 
     public DateTime Rented { get; init; }
 
     public DateTime Returned { get; set; }
 
-    public int KmRented { get; init; }
+    public double KmRented { get; init; }
 
-    public int KmUsed { get; init; } = 0;
+    public double KmReturned { get; set; } = 0;
 
     public double Cost { get; set; }
 
     public BookingStatus Status { get; set ; }
 
-    public Booking(IPerson customer, IVehicle vehicle)
+    public Booking(int id, IPerson customer, Vehicle vehicle)
     {
+        Id = id;
         Customer = customer;
         Vehicle = vehicle;
         Rented = DateTime.Now;
@@ -36,16 +39,18 @@ public class Booking : IBooking
         Status = BookingStatus.Open;
     }
 
-    public void CloseBooking()
+    public void CloseBooking(double distance)
     {
+        KmReturned = KmRented + distance;
+        Vehicle.Odometer = KmReturned;
         Status = BookingStatus.Closed;
         Returned = DateTime.Now;
-        if ((Returned - Rented).TotalDays > 1)
-            Cost = Vehicle.CostDay * (Returned - Rented).TotalDays + Vehicle.CostKm * KmUsed;
+        if (Rented.Duration(Returned) > 1)
+            Cost = Vehicle.CostDay * Rented.Duration(Returned) + Vehicle.CostKm * distance;
         else
-            Cost = Vehicle.CostDay * 1 + Vehicle.CostKm * KmUsed;
-        Vehicle.Odometer = KmRented + KmUsed;
+            Cost = Vehicle.CostDay * 1 + Vehicle.CostKm * distance;
         Vehicle.Status = VehicleStatus.Available;
 
     }
+
 }

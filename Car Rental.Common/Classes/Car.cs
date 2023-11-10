@@ -8,23 +8,12 @@ using System.Threading.Tasks;
 
 namespace Car_Rental.Common.Classes;
 
-public class Car :IVehicle
+public class Car : Vehicle
 {
-    public VehicleType Type { get; init; }
 
-    public VehicleStatus Status { get; set; }
-
-    public string Make { get; init; }
-
-    public string RegNr { get; init; }
-    public int Odometer { get; set; }
-
-    public float CostKm { get; init; }
-
-    public float CostDay { get; init; }
-
-    public Car(VehicleType type, string make, string regNr, int odometer, float costKm, float costDay)
+    public Car(int id, VehicleType? type, string make, string regNr, double odometer, double costKm, double costDay = 100)
     {
+        Id = id;
         Status = VehicleStatus.Available;
         Type = type;
         Make = make;
@@ -34,8 +23,4 @@ public class Car :IVehicle
         CostDay = costDay;
     }
 
-    public void Book()
-    {
-        Status = VehicleStatus.Booked;
-    }
 }

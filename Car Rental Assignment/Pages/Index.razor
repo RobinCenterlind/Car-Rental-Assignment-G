@@ -1,12 +1,19 @@
 ﻿@page "/"
 @using Car_Rental.Business.Classes;
+@using Car_Rental.Common.Classes;
 @using Car_Rental.Common.Enumerals;
 @using Car_Rental.Common.Interfaces;
 @inject BookingProcessor BP
 
 <PageTitle>Index</PageTitle>
 
-<h2>Car Rental Assignment - G</h2>
+<h2>Car Rental Assignment - VG</h2>
+
+
+@if (alert is not null)
+{
+    <div class="alert alert-danger" role="alert">@alert</div>
+}
 
 <h5>Vehicles</h5>
 
@@ -18,12 +25,43 @@
             <th>Odometer</th>
             <th>Cost/Km</th>
             <th>Vehicle Type</th>
-            <th>Cost/Day ($)</th>
+            <th>$/Day</th>
+            <th>Action</th>
             <th>Status</th>
         </tr>
     </thead>
+    <thead>
+        <tr>
+            <th><input placeholder="RegNr" disabled="@(!bookReady)" @bind="regNr" /></th>
+            <th><input placeholder="Make" disabled="@(!bookReady)" @bind="make" /></th>
+            <th><input type="number" disabled="@(!bookReady)" @bind="odometer" /></th>
+            <th><input type="number" disabled="@(!bookReady)" @bind="costKm" /></th>
+            <th>
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" disabled="@(!bookReady)">
+                        @(type == null ? "Vehicle Type" : type)
+                    </button>
+                    <ul class="dropdown-menu">
+                        @foreach (string element in vehicleTypes)
+                        {
+                            <li><a class="dropdown-item" href="#" @onclick="() => TypeSelect(element)">@element</a></li>
+                        }
+                    </ul>
+                </div>
+
+            </th>
+            <th></th>
+            <th><button type="button" class="btn btn-outline-success" disabled="@(!bookReady)" @onclick="AddVehicle">Add</button></th>
+            <th>
+                @if (!bookReady)
+                {
+                    <span class="badge rounded-pill text-bg-warning">Processing...</span>
+                }
+            </th>
+        </tr>
+    </thead>
     <tbody>
-        @foreach (IVehicle element in BP.GetVehicles())
+        @foreach (Vehicle element in BP.GetVehicles())
         {
             <tr>
                 <th>@element.RegNr</th>
@@ -32,9 +70,69 @@
                 <td>@element.CostKm</td>
                 <td>@element.Type</td>
                 <td>@element.CostDay</td>
-                <td><span class="badge rounded-pill text-bg-@(element.Status == VehicleStatus.Available ? "success" : "danger")">
-                    @(element.Status == VehicleStatus.Available ? "Available" : "Booked")</span></td>
-                
+                <td>
+                    @if (element.Status == VehicleStatus.Available)
+                    {
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" disabled="@(!bookReady)">
+                                @customerString
+                            </button>
+                            <ul class="dropdown-menu" disabled="@(!bookReady)">
+                                @foreach (IPerson customer in BP.GetPersons())
+                                {
+                                    <li><a class="dropdown-item" href="#" @onclick="() => CustomerSelect(customer)">@customer.ToString()</a></li>
+                                }
+                            </ul>
+                            <button type="button" class="btn btn-outline-primary" disabled="@(!bookReady)" @onclick="() => Rent(element.Id)">Rent</button>
+                        </div>
+
+                    }
+                    else
+                    {
+                        <input placeholder="Distance" type="number" disabled="@(!bookReady)" @bind="distance" />
+                        <button type="button" class="btn btn-outline-success" disabled="@(!bookReady)" @onclick="() => Return(element.Id)">Return</button>
+                    }
+                </td>
+                <td>
+                    <span class="badge rounded-pill text-bg-@(element.Status == VehicleStatus.Available ? "success" : "danger")">
+                        @(element.Status == VehicleStatus.Available ? "Available" : "Booked")
+                    </span>
+                </td>
+
+            </tr>
+        }
+    </tbody>
+</table>
+
+<h5>Customers</h5>
+
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>SSN</th>
+            <th>Last Name</th>
+            <th>First Name</th>
+        </tr>
+    </thead>
+    <thead>
+        <tr>
+            <th><input placeholder="SSN" @bind="socialSecurityNumber" /></th>
+            <th><input placeholder="Last Name" @bind="lastName" /></th>
+            <th>
+                <input placeholder="First Name" @bind="firstName" />
+                <button type="button" class="btn btn-outline-success" @onclick="AddCustomer">Add</button>
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (IPerson element in BP.GetPersons())
+        {
+            <tr>
+                <th>@element.SocialSecurityNumber</th>
+                <td>@element.LastName</td>
+                <td>@element.FirstName</td>
+
             </tr>
         }
     </tbody>
@@ -62,43 +160,131 @@
                 <th>@element.Vehicle.RegNr</th>
                 <td>@($"{element.Customer.LastName} {element.Customer.FirstName} {element.Customer.SocialSecurityNumber}")</td>
                 <td>@element.KmRented</td>
-                <td>@if(element.Status.Equals(BookingStatus.Closed))
-                    @(element.KmRented + element.KmUsed)
+                <td>
+                    @if (element.Status.Equals(BookingStatus.Closed))
+                        @(element.KmReturned)
+
                 </td>
                 <td>@element.Rented.ToShortDateString()</td>
-                <td>@if (element.Status.Equals(BookingStatus.Closed))
-                    @element.Returned.ToShortDateString()
-                </td>
-                <td>@if (element.Status.Equals(BookingStatus.Closed))
+                <td>
+                    @if (element.Status.Equals(BookingStatus.Closed))
+                        @element.Returned.ToShortDateString()
+
+                    </td>
+                    <td>
+                        @if (element.Status.Equals(BookingStatus.Closed))
                         @element.Cost
+
+                    </td>
+                    <td>
+                        <span class="badge rounded-pill text-bg-@(element.Status == BookingStatus.Open ? "info" : "dark")">
+                            @(element.Status == BookingStatus.Open ? "Open" : "Closed")
+                    </span>
                 </td>
-                <td><span class="badge rounded-pill text-bg-@(element.Status == BookingStatus.Open ? "info" : "dark")">
-                    @(element.Status == BookingStatus.Open ? "Open" : "Closed")</span></td>
             </tr>
         }
     </tbody>
 </table>
 
-<h5>Customers</h5>
 
 
-<table class="table table-bordered">
-    <thead>
-        <tr>
-            <th>SSN</th>
-            <th>Last Name</th>
-            <th>First Name</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (IPerson element in BP.GetPersons())
+
+
+@code{
+    string regNr;
+    string make;
+    double odometer = 0;
+    double costKm = 0;
+    string? type = null;
+    string? alert = null;
+    bool bookReady = true;
+    IPerson customer;
+    string customerString = "Customer";
+    string distance;
+    string[] vehicleTypes;
+    string socialSecurityNumber;
+    string firstName;
+    string lastName;
+
+    protected override void OnInitialized()
+    {
+        vehicleTypes = BP.VehicleTypeNames;
+    }
+    void AddVehicle()
+    {
+        try
         {
-            <tr>
-                <th>@element.SocialSecurityNumber</th>
-                <td>@element.LastName</td>
-                <td>@element.FirstName</td>
-                
-            </tr>
+
+            BP.AddVehicle(make, regNr, odometer, costKm, BP.GetVehicleType(type));
+            alert = null;
+            regNr = default;
+            make = default;
+            odometer = 0;
+            costKm = 0;
+            type = null;
         }
-    </tbody>
-</table>
+        catch
+        {
+            alert = "Could not add vehicle. Make sure to fill all fields correctly.";
+        }
+    }
+
+    void AddCustomer()
+    {
+        try
+        {
+            BP.AddCustomer(firstName, lastName, Convert.ToInt32(socialSecurityNumber));
+            alert = null;
+            socialSecurityNumber = default;
+            lastName = default;
+            firstName = default;
+        }
+        catch
+        {
+            alert = "Could not add customer. Make sure to enter valid customer information.";
+        }
+    }
+
+    async Task Rent(int vehicleId)
+    {
+        try
+        {
+            alert = null;
+            bookReady = false;
+            await BP.RentVehicleAsync(customer.Id, vehicleId);
+        }
+        catch
+        {
+            alert = "Could not rent vehicle. Make sure to select a customer.";
+        }
+        customer = null;
+        customerString = "Customer";
+        bookReady = true;
+    }
+
+    void Return(int vehicleId)
+    {
+        try
+        {
+            BP.ReturnVehicle(vehicleId, Convert.ToDouble(distance));
+            distance = default;
+            alert = null;
+        }
+        catch
+        {
+            alert = "Could not return vehicle. Make sure to enter a valid distance.";   
+        }
+    }
+
+    void TypeSelect(string selectedType)
+    {
+        type = selectedType;
+    }
+
+    void CustomerSelect(IPerson selectedCustomer)
+    {
+        customer = selectedCustomer;
+        customerString = customer.ToString();
+    }
+
+}
