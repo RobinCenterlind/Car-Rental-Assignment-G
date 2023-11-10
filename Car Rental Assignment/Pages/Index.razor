@@ -158,7 +158,7 @@
         {
             <tr>
                 <th>@element.Vehicle.RegNr</th>
-                <td>@($"{element.Customer.LastName} {element.Customer.FirstName} {element.Customer.SocialSecurityNumber}")</td>
+                <td>@element.Customer.ToString()</td>
                 <td>@element.KmRented</td>
                 <td>
                     @if (element.Status.Equals(BookingStatus.Closed))
